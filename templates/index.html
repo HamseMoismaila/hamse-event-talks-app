@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Pulse</title>
+    <meta name="description" content="Track Google Cloud BigQuery release notes and updates in real-time, select and share them directly to Twitter.">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- CSS stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <!-- Background glows -->
+    <div class="glow-bg glow-primary"></div>
+    <div class="glow-bg glow-secondary"></div>
+    <div class="glow-bg glow-tertiary"></div>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-container">
+                    <div class="logo-icon">
+                        <i data-lucide="database" class="icon-pulse"></i>
+                    </div>
+                    <div>
+                        <h1>BigQuery Release Pulse</h1>
+                        <p class="subtitle">Stay updated with Google Cloud BigQuery changes</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="status-indicator">
+                    <span class="pulse-dot"></span>
+                    <span class="status-text">Feed Connected</span>
+                </div>
+                <button id="refresh-btn" class="btn btn-primary" title="Fetch latest release notes">
+                    <i data-lucide="rotate-cw" id="refresh-icon"></i>
+                    <span>Refresh Feed</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Stats Section -->
+        <section class="stats-grid">
+            <div class="stat-card glass" id="stat-total">
+                <div class="stat-icon purple"><i data-lucide="activity"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Updates</span>
+                    <h3 class="stat-value" id="val-total">-</h3>
+                </div>
+            </div>
+            <div class="stat-card glass" id="stat-features">
+                <div class="stat-icon green"><i data-lucide="sparkles"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Features</span>
+                    <h3 class="stat-value" id="val-features">-</h3>
+                </div>
+            </div>
+            <div class="stat-card glass" id="stat-announcements">
+                <div class="stat-icon blue"><i data-lucide="megaphone"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Announcements</span>
+                    <h3 class="stat-value" id="val-announcements">-</h3>
+                </div>
+            </div>
+            <div class="stat-card glass" id="stat-deprecations">
+                <div class="stat-icon orange"><i data-lucide="alert-triangle"></i></div>
+                <div class="stat-info">
+                    <span class="stat-label">Deprecations</span>
+                    <h3 class="stat-value" id="val-deprecations">-</h3>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search and Filters Section -->
+        <section class="control-panel glass">
+            <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search updates, features, keywords..." aria-label="Search release notes">
+                <button id="clear-search" class="clear-btn" style="display: none;"><i data-lucide="x"></i></button>
+            </div>
+            <div class="filter-group">
+                <button class="filter-chip active" data-filter="all">All <span class="badge" id="badge-all">0</span></button>
+                <button class="filter-chip" data-filter="feature">Features <span class="badge" id="badge-features">0</span></button>
+                <button class="filter-chip" data-filter="announcement">Announcements <span class="badge" id="badge-announcements">0</span></button>
+                <button class="filter-chip" data-filter="deprecation">Deprecations <span class="badge" id="badge-deprecations">0</span></button>
+                <button class="filter-chip" data-filter="other">Others <span class="badge" id="badge-others">0</span></button>
+            </div>
+        </section>
+
+        <!-- Error Container -->
+        <div id="error-container" class="error-banner glass" style="display: none;">
+            <i data-lucide="alert-circle" class="error-icon"></i>
+            <div class="error-message">
+                <h4>Error Loading Updates</h4>
+                <p id="error-text">Something went wrong while fetching the latest release notes.</p>
+            </div>
+            <button id="retry-btn" class="btn btn-outline">Retry</button>
+        </div>
+
+        <!-- Release Notes Feed Grid -->
+        <main class="feed-section">
+            <!-- Loading skeleton loader -->
+            <div id="skeleton-loader" class="skeleton-container">
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+                <div class="skeleton-card glass"></div>
+            </div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-container glass" style="display: none;">
+                <i data-lucide="search-code" class="empty-icon"></i>
+                <h3>No release notes match your criteria</h3>
+                <p>Try clearing your search query or adjusting your filters to explore other updates.</p>
+                <button id="reset-filters-btn" class="btn btn-outline">Reset Search & Filters</button>
+            </div>
+
+            <!-- Feed Grid -->
+            <div id="feed-grid" class="feed-grid"></div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="app-footer-bar">
+            <p>BigQuery Release Pulse &copy; 2026. Data sourced from <a href="https://docs.cloud.google.com/feeds/bigquery-release-notes.xml" target="_blank" rel="noopener noreferrer">Google Cloud Feeds</a>.</p>
+            <p id="cache-time-indicator" class="cache-indicator">Not loaded yet</p>
+        </footer>
+    </div>
+
+    <!-- Slide-out Tweet Composer Drawer -->
+    <div id="tweet-drawer" class="tweet-drawer glass">
+        <div class="drawer-header">
+            <div class="drawer-title">
+                <i data-lucide="twitter" class="twitter-logo-icon"></i>
+                <h3>Tweet Composer</h3>
+            </div>
+            <button id="close-drawer-btn" class="btn-close" aria-label="Close Composer">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="drawer-body">
+            <div class="selected-update-preview">
+                <div class="preview-meta">
+                    <span id="preview-chip" class="type-chip">Feature</span>
+                    <span id="preview-date" class="preview-date"><i data-lucide="calendar"></i> June 17, 2026</span>
+                </div>
+                <p id="preview-text" class="preview-content-snippet"></p>
+            </div>
+
+            <div class="tweet-textarea-container">
+                <label for="tweet-text" class="input-label">Customize Tweet Draft</label>
+                <textarea id="tweet-text" rows="7" placeholder="Compose your tweet..."></textarea>
+                <div class="tweet-counter-container">
+                    <span id="tweet-char-counter" class="char-counter">0 / 280</span>
+                    <span id="tweet-warning" class="warning-text" style="display: none;">Exceeds Twitter character limit</span>
+                </div>
+            </div>
+
+            <div class="drawer-actions">
+                <button id="copy-tweet-btn" class="btn btn-outline">
+                    <i data-lucide="copy"></i>
+                    <span>Copy Text</span>
+                </button>
+                <button id="post-tweet-btn" class="btn btn-twitter">
+                    <i data-lucide="send"></i>
+                    <span>Tweet this Update</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript code -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
